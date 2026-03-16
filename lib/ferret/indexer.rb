@@ -1,0 +1,129 @@
+# frozen_string_literal: true
+
+require "digest"
+
+module Ferret
+  module Indexer
+    @mutex = Mutex.new
+
+    def self.embed_model
+      @embed_model || @mutex.synchronize do
+        @embed_model ||= begin
+          require "informers"
+          Informers.pipeline("embedding", Ferret.configuration.embedding_model)
+        end
+      end
+    end
+
+    def self.reset_models!
+      @mutex.synchronize { @embed_model = nil }
+    end
+
+    def self.index_record(record)
+      db = Database.connection
+      record_type = record.class.name
+      record_id = record.id.to_s
+      fields = Ferret.registry[record.class]
+      return unless fields
+
+      raw_text = fields.map { |f| record.send(f).to_s }.join(" ")
+      clean_text = Database.clean(raw_text)
+      return if clean_text.nil? || clean_text.strip.empty?
+
+      text_hash = Digest::SHA256.hexdigest(clean_text)
+
+      # Check if already indexed with same content
+      existing = db.execute(
+        "SELECT text_hash FROM ferret_documents WHERE record_type = ? AND record_id = ?",
+        [record_type, record_id]
+      ).first
+      return if existing && existing["text_hash"] == text_hash
+
+      # Embed (CPU-intensive, done outside the write lock)
+      embedding = embed_model.(clean_text)
+      blob = embedding.pack("e*")
+
+      Database.with_write_lock do
+        db.transaction do
+          # Upsert document
+          db.execute(<<~SQL, [record_type, record_id, clean_text, text_hash])
+            INSERT INTO ferret_documents (record_type, record_id, searchable_text, text_hash, updated_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(record_type, record_id) DO UPDATE SET
+              searchable_text = excluded.searchable_text,
+              text_hash = excluded.text_hash,
+              updated_at = datetime('now')
+          SQL
+
+          # Upsert vec_lookup
+          db.execute(<<~SQL, [record_type, record_id])
+            INSERT OR IGNORE INTO vec_lookup (record_type, record_id) VALUES (?, ?)
+          SQL
+          rowid = db.execute(
+            "SELECT rowid FROM vec_lookup WHERE record_type = ? AND record_id = ?",
+            [record_type, record_id]
+          ).first["rowid"]
+
+          # Replace vector
+          db.execute("DELETE FROM vec_documents WHERE rowid = ?", [rowid])
+          db.execute("INSERT INTO vec_documents (rowid, embedding) VALUES (?, ?)", [rowid, blob])
+
+          # Replace FTS
+          db.execute("DELETE FROM fts_documents WHERE record_type = ? AND record_id = ?", [record_type, record_id])
+          db.execute(
+            "INSERT INTO fts_documents (rowid, record_type, record_id, searchable_text) VALUES (?, ?, ?, ?)",
+            [rowid, record_type, record_id, clean_text]
+          )
+        end
+      end
+    end
+
+    def self.embed_all!(model_class = nil)
+      classes = if model_class
+        { model_class => Ferret.registry[model_class] }
+      else
+        Ferret.registry
+      end
+
+      classes.each do |klass, fields|
+        records = klass.all
+        total = records.count
+        done = 0
+
+        $stderr.puts "Ferret: embedding #{total} #{klass.name} records..."
+
+        records.find_each do |record|
+          index_record(record)
+          done += 1
+          $stderr.print "\r  #{done}/#{total}" if done % 10 == 0
+        end
+
+        $stderr.puts "\r  done: #{done}/#{total} #{klass.name} records embedded"
+      end
+    end
+
+    def self.remove_record(record_type, record_id)
+      db = Database.connection
+      record_id = record_id.to_s
+
+      Database.with_write_lock do
+        lookup = db.execute(
+          "SELECT rowid FROM vec_lookup WHERE record_type = ? AND record_id = ?",
+          [record_type, record_id]
+        ).first
+
+        db.transaction do
+          if lookup
+            db.execute("DELETE FROM vec_documents WHERE rowid = ?", [lookup["rowid"]])
+            db.execute("DELETE FROM fts_documents WHERE rowid = ?", [lookup["rowid"]])
+            db.execute("DELETE FROM vec_lookup WHERE rowid = ?", [lookup["rowid"]])
+          end
+          db.execute(
+            "DELETE FROM ferret_documents WHERE record_type = ? AND record_id = ?",
+            [record_type, record_id]
+          )
+        end
+      end
+    end
+  end
+end
