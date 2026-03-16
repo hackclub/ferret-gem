@@ -27,7 +27,7 @@ module Ferret
         after_commit :ferret_remove, on: :destroy
 
         define_method(:saved_changes_to_ferret_fields?) do
-          !persisted_before_last_save || saved_changes.keys.any? { |k| watch_columns.include?(k.to_sym) }
+          saved_changes.keys.any? { |k| watch_columns.include?(k.to_sym) }
         end
 
         define_method(:ferret_index) do

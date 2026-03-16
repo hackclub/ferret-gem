@@ -18,4 +18,27 @@ RSpec.describe Ferret::Searchable do
       expect(project).to respond_to(:ferret_remove)
     end
   end
+
+  describe "after_commit lifecycle" do
+    before do
+      allow(Ferret.configuration).to receive(:embed_on_save).and_return(true)
+    end
+
+    it "detects ferret field changes on create" do
+      project = TestProject.create!(title: "New", description: "Project")
+      expect(project.saved_changes_to_ferret_fields?).to be true
+    end
+
+    it "detects ferret field changes on update" do
+      project = TestProject.create!(title: "Old", description: "Project")
+      project.update!(title: "Updated")
+      expect(project.saved_changes_to_ferret_fields?).to be true
+    end
+
+    it "ignores non-ferret field changes on update" do
+      project = TestProject.create!(title: "Same", description: "Project")
+      project.update!(updated_at: Time.now)
+      expect(project.saved_changes_to_ferret_fields?).to be false
+    end
+  end
 end
