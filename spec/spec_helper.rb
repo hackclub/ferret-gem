@@ -14,6 +14,13 @@ ActiveRecord::Schema.define do
     t.text :description
     t.timestamps
   end
+
+  create_table :test_items, force: true do |t|
+    t.string :type
+    t.string :name
+    t.text :description
+    t.timestamps
+  end
 end
 
 # Test model — defined once, reused across specs
@@ -22,6 +29,17 @@ class TestProject < ActiveRecord::Base
 
   has_ferret_search :title, :description
 end
+
+# STI base class for testing
+class TestItem < ActiveRecord::Base
+  include Ferret::Searchable
+
+  has_ferret_search :name, :description
+end
+
+# STI subclasses
+class TestItem::Physical < TestItem; end
+class TestItem::Digital < TestItem; end
 
 # Configure ferret to use a temp database for tests
 FERRET_TEST_DB = File.join(Dir.tmpdir, "ferret_test_#{Process.pid}.sqlite3")

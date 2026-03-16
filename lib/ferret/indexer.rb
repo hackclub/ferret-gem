@@ -21,10 +21,14 @@ module Ferret
 
     def self.index_record(record)
       db = Database.connection
-      record_type = record.class.name
       record_id = record.id.to_s
-      fields = Ferret.registry[record.class]
-      return unless fields
+
+      # Walk up the ancestry to find the registered base class (handles STI)
+      registered_class = record.class.ancestors.detect { |klass| Ferret.registry.key?(klass) }
+      return unless registered_class
+
+      record_type = registered_class.name
+      fields = Ferret.registry[registered_class]
 
       raw_text = fields.map { |f| record.send(f).to_s }.join(" ")
       clean_text = Database.clean(raw_text)

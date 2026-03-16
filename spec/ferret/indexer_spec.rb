@@ -136,6 +136,33 @@ RSpec.describe Ferret::Indexer do
     end
   end
 
+  describe "STI support" do
+    let!(:physical) { TestItem::Physical.create!(name: "Keyboard", description: "Mechanical keyboard") }
+    let!(:digital) { TestItem::Digital.create!(name: "Cloud Credits", description: "Hosting credits") }
+
+    it "indexes STI subclasses under the base class record_type" do
+      described_class.index_record(physical)
+      described_class.index_record(digital)
+
+      db = Ferret::Database.connection
+      rows = db.execute("SELECT record_type, record_id FROM ferret_documents WHERE record_type = 'TestItem'")
+      expect(rows.length).to eq(2)
+      expect(rows.map { |r| r["record_id"] }).to contain_exactly(physical.id.to_s, digital.id.to_s)
+    end
+
+    it "embed_all! indexes all STI subclass records" do
+      TestItem.delete_all
+      TestItem::Physical.create!(name: "Stickers", description: "Holographic stickers")
+      TestItem::Digital.create!(name: "Domain", description: "A .dev domain")
+
+      described_class.embed_all!(TestItem)
+
+      db = Ferret::Database.connection
+      count = db.execute("SELECT COUNT(*) as c FROM ferret_documents WHERE record_type = 'TestItem'").first["c"]
+      expect(count).to eq(2)
+    end
+  end
+
   describe ".embed_all!" do
     it "indexes every record with non-blank searchable text" do
       TestProject.delete_all
