@@ -30,7 +30,7 @@ module Ferret
       record_type = registered_class.name
       fields = Ferret.registry[registered_class]
 
-      raw_text = fields.map { |f| record.send(f).to_s }.join(" ")
+      raw_text = fields.map { |f| f.is_a?(Proc) ? record.instance_exec(&f).to_s : record.send(f).to_s }.join(" ")
       clean_text = Database.clean(raw_text)
       return if clean_text.nil? || clean_text.strip.empty?
 
@@ -106,7 +106,7 @@ module Ferret
           record_type = registered_class.name
           record_id = record.id.to_s
 
-          raw_text = fields.map { |f| record.send(f).to_s }.join(" ")
+          raw_text = fields.map { |f| f.is_a?(Proc) ? record.instance_exec(&f).to_s : record.send(f).to_s }.join(" ")
           clean_text = Database.clean(raw_text)
           done += 1
 

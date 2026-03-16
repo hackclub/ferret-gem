@@ -5,7 +5,7 @@ require "spec_helper"
 RSpec.describe Ferret::Searchable do
   describe ".has_ferret_search" do
     it "registers the model and fields in the Ferret registry" do
-      expect(Ferret.registry[TestProject]).to eq(Set[:title, :description])
+      expect(Ferret.registry[TestProject]).to eq(%i[title description])
     end
 
     it "adds a ferret_search class method" do
