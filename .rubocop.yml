@@ -1,0 +1,77 @@
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: enable
+  SuggestExtensions: false
+
+# Trailing whitespace
+Layout/TrailingWhitespace:
+  Enabled: true
+
+# Trailing blank lines
+Layout/TrailingEmptyLines:
+  Enabled: true
+
+# Consistent indentation
+Layout/IndentationWidth:
+  Width: 2
+
+Layout/IndentationConsistency:
+  Enabled: true
+
+# Line length — generous for SQL strings
+Layout/LineLength:
+  Max: 120
+
+# Frozen string literal
+Style/FrozenStringLiteralComment:
+  Enabled: true
+
+# String literals
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+# Keep it simple — disable noisy cops
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/ModuleLength:
+  Enabled: false
+
+# Small gem, doc comments are overkill
+Style/Documentation:
+  Enabled: false
+
+# has_ferret_search is a DSL method, not a predicate
+Naming/PredicatePrefix:
+  Enabled: false
+
+# We use .() for calling informers pipelines — it's idiomatic for callable objects
+Style/LambdaCall:
+  Enabled: false
+
+# Constants in spec blocks are fine for fixtures
+Lint/ConstantDefinitionInBlock:
+  Exclude:
+    - "spec/**/*"
+
+# gemspec MFA not needed for internal gem
+Gemspec/RequireMFA:
+  Enabled: false

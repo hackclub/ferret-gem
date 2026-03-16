@@ -34,7 +34,12 @@ rm -f ferret-*.gem
 echo "  ✓ gemspec is valid"
 echo ""
 
-# --- Step 2: Figure out which specs to run ---
+# --- Step 2: Rubocop (always runs, fast) ---
+echo "=== Running rubocop ==="
+bundle exec rubocop
+echo ""
+
+# --- Step 3: Figure out which specs to run ---
 if [[ "$MODE" == "full" ]]; then
   echo "=== Running full spec suite ==="
   bundle exec rspec
