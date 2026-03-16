@@ -17,7 +17,7 @@ Ferret adds semantic search to any ActiveRecord model with a single line of code
 Add to your Gemfile:
 
 ```ruby
-gem "ferret", path: "../ferret"  # or github: "hackclub/ferret"
+gem "ferret", github: "hackclub/ferret-gem"
 gem "sqlite-vec"                  # see platform notes below
 ```
 
