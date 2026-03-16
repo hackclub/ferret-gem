@@ -21,7 +21,8 @@ module Ferret
 
         ferret_base_name = name
 
-        after_commit :ferret_index, on: %i[create update],
+        after_commit :ferret_index,
+                     on: %i[create update],
                      if: -> { Ferret.configuration.embed_on_save && saved_changes_to_ferret_fields? }
         after_commit :ferret_remove, on: :destroy
 

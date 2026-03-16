@@ -125,7 +125,7 @@ module Ferret
         end
 
         # Flush remaining
-        if @_batch && @_batch.any?
+        if @_batch&.any?
           embedded += flush_batch!(@_batch)
           @_batch = nil
         end
@@ -189,7 +189,8 @@ module Ferret
             db.execute("DELETE FROM vec_documents WHERE rowid = ?", [rowid])
             db.execute("INSERT INTO vec_documents (rowid, embedding) VALUES (?, ?)", [rowid, blob])
 
-            db.execute("DELETE FROM fts_documents WHERE record_type = ? AND record_id = ?", [b[:record_type], b[:record_id]])
+            db.execute("DELETE FROM fts_documents WHERE record_type = ? AND record_id = ?",
+                       [b[:record_type], b[:record_id]])
             db.execute(
               "INSERT INTO fts_documents (rowid, record_type, record_id, searchable_text) VALUES (?, ?, ?, ?)",
               [rowid, b[:record_type], b[:record_id], b[:clean_text]]

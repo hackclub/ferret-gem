@@ -75,3 +75,13 @@ Lint/ConstantDefinitionInBlock:
 # gemspec MFA not needed for internal gem
 Gemspec/RequireMFA:
   Enabled: false
+
+# Test helpers define multiple classes in spec_helper
+Style/OneClassPerFile:
+  Exclude:
+    - "spec/**/*"
+
+# STI test subclasses use compact style for brevity
+Style/ClassAndModuleChildren:
+  Exclude:
+    - "spec/**/*"
