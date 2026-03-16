@@ -18,7 +18,6 @@ Add to your Gemfile:
 
 ```ruby
 gem "ferret", github: "hackclub/ferret-gem"
-gem "sqlite-vec"                  # see platform notes below
 ```
 
 Run the install generator:
@@ -39,7 +38,7 @@ class Project < ApplicationRecord
 end
 ```
 
-This registers the model for indexing and adds an `after_commit` callback that enqueues a background job to embed the record whenever it's created or updated.
+This registers the model for indexing and adds an `after_commit` callback that enqueues a background job to embed the record whenever the relevent fields are created, updated, or destroyed.
 
 ### Search
 
@@ -59,12 +58,11 @@ First-time setup or after adding `has_ferret_search` to a model:
 Ferret.embed_all!              # all registered models
 Ferret.embed_all!(Project)     # just one model
 ```
-
-Or via rake:
-
 ```bash
 bin/rails ferret:embed_all
 ```
+
+`embed_all!` is idempotent — it hashes each record's searchable text and skips anything that hasn't changed. This makes it safe to call on every deploy or container start as a warmup step without re-embedding your entire dataset.
 
 ### Rebuild indexes
 
@@ -125,61 +123,11 @@ Ferret.configure do |config|
 end
 ```
 
-## sqlite-vec platform issues
-
-The `sqlite-vec` gem has a platform naming problem: it publishes gems under `arm64-linux`, but Docker containers running on Apple Silicon (and other aarch64 systems) report their platform as `aarch64-linux`. Bundler can't resolve this mismatch.
-
-Because of this, `sqlite-vec` is **not** declared as a dependency in the ferret gemspec. You need to handle it yourself.
-
-### On macOS (native)
-
-No issues — just add `gem "sqlite-vec"` to your Gemfile and it works.
-
-### In Docker (aarch64-linux)
-
-The `arm64-linux` gem installs but ships a **32-bit ARM binary** that won't load on 64-bit aarch64. You need to compile sqlite-vec from source.
-
-Add this to your Dockerfile:
-
-```dockerfile
-# Compile sqlite-vec from source for aarch64
-RUN apt-get update && apt-get install -y wget gettext-base && \
-    cd /tmp && \
-    wget -q https://github.com/asg017/sqlite-vec/archive/refs/tags/v0.1.6.tar.gz && \
-    tar xzf v0.1.6.tar.gz && \
-    cd sqlite-vec-0.1.6 && \
-    make loadable && \
-    cp dist/vec0.so /tmp/vec0.so && \
-    cd / && rm -rf /tmp/sqlite-vec-0.1.6 /tmp/v0.1.6.tar.gz
-```
-
-Then after `gem install sqlite-vec`, replace the shipped `.so` with your compiled one:
-
-```dockerfile
-RUN gem install sqlite-vec && \
-    VEC_DIR=$(find /usr/local/bundle/gems -name "sqlite-vec-*" -type d | head -1) && \
-    cp /tmp/vec0.so "$VEC_DIR/lib/vec0.so"
-```
-
-You may also need to do this at container startup if bundler reinstalls gems (e.g. in a dev entrypoint script).
-
-### Future fix: sqlite-vec 0.1.7
-
-This is a known upstream issue: [asg017/sqlite-vec#148](https://github.com/asg017/sqlite-vec/issues/148). The maintainer has published `v0.1.7-alpha.2` with a proper aarch64 fix (confirmed working by multiple users), but the Ruby gem hasn't been updated yet — only the NPM package got the alpha. Once `sqlite-vec` gem `0.1.7` is released:
-
-1. Update the Dockerfile to install `sqlite-vec 0.1.7` normally (drop the compile-from-source step)
-2. Add `sqlite-vec` back as a gemspec dependency in ferret
-3. Remove the `LoadError` rescue fallback in `database.rb`
-
-### Why not just fix the gem dependency today?
-
-Ferret uses a `LoadError` rescue fallback that manually adds sqlite-vec's gem path to `$LOAD_PATH` when bundler blocks the require. This lets it work even when bundler doesn't recognize the gem as properly installed. It's not pretty, but it's reliable.
-
 ## Dependencies
 
 - **sqlite3** (~> 2.0) — SQLite database driver
+- **sqlite-vec** (~> 0.1.7.alpha.10) — vector similarity search extension
 - **informers** — ONNX model inference for embeddings and reranking
 - **activerecord** (>= 7.0) — AR integration
 - **activejob** (>= 7.0) — background embedding jobs
-- **sqlite-vec** (runtime, not in gemspec) — vector similarity search extension
 

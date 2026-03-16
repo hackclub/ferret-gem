@@ -11,17 +11,7 @@ module Ferret
       @db || @mutex.synchronize do
         @db ||= begin
           require "sqlite3"
-          # Load sqlite-vec, handling the case where bundler restricts it
-          # (sqlite-vec has a platform naming issue: publishes arm64-linux
-          # but aarch64-linux Docker containers can't resolve it through bundler)
-          begin
-            require "sqlite_vec"
-          rescue LoadError
-            # Try loading from gem install path directly
-            vec_paths = Gem.path.flat_map { |p| Dir.glob("#{p}/gems/sqlite-vec-*/lib") }
-            vec_paths.each { |p| $LOAD_PATH.unshift(p) unless $LOAD_PATH.include?(p) }
-            require "sqlite_vec"
-          end
+          require "sqlite_vec"
           path = Ferret.configuration.database_path
           FileUtils.mkdir_p(File.dirname(path))
           db = SQLite3::Database.new(path.to_s)
