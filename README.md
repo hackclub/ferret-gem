@@ -20,6 +20,9 @@ Add to your Gemfile:
 gem "ferret", path: "../ferret"  # or github: "hackclub/ferret"
 gem "sqlite-vec"                  # see platform notes below
 ```
+
+Run the install generator:
+
 ```bash
 bin/rails g ferret:install
 ```
