@@ -10,19 +10,19 @@ module Ferret
       def has_ferret_search(*fields)
         Ferret.registry[self] = fields.map(&:to_sym)
 
-        after_commit :ferret_index, on: [:create, :update], if: -> { Ferret.configuration.embed_on_save }
+        after_commit :ferret_index, on: %i[create update], if: -> { Ferret.configuration.embed_on_save }
         after_commit :ferret_remove, on: :destroy
 
         define_method(:ferret_index) do
           if defined?(Ferret::EmbedRecordJob)
-            Ferret::EmbedRecordJob.perform_later(self.class.name, self.id)
+            Ferret::EmbedRecordJob.perform_later(self.class.name, id)
           else
             Ferret::Indexer.index_record(self)
           end
         end
 
         define_method(:ferret_remove) do
-          Ferret::Indexer.remove_record(self.class.name, self.id.to_s)
+          Ferret::Indexer.remove_record(self.class.name, id.to_s)
         end
       end
 

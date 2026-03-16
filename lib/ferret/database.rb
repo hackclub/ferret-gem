@@ -39,13 +39,17 @@ module Ferret
     end
 
     # Serialize write operations to avoid SQLite "database is locked" errors
-    def self.with_write_lock(&block)
-      @write_mutex.synchronize(&block)
+    def self.with_write_lock(&)
+      @write_mutex.synchronize(&)
     end
 
     def self.reset_connection!
       @mutex.synchronize do
-        @db&.close rescue nil
+        begin
+          @db&.close
+        rescue StandardError
+          nil
+        end
         @db = nil
       end
     end
@@ -91,10 +95,10 @@ module Ferret
 
     def self.clean(text)
       return nil if text.nil?
-      text = text.gsub(/https?:\/\/\S+/, "")
+
+      text = text.gsub(%r{https?://\S+}, "")
       text = text.gsub(/[#*_`~\[\]()>|]/, "")
-      text = text.gsub(/\s+/, " ").strip
-      text
+      text.gsub(/\s+/, " ").strip
     end
   end
 end

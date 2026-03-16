@@ -19,6 +19,7 @@ end
 # Test model — defined once, reused across specs
 class TestProject < ActiveRecord::Base
   include Ferret::Searchable
+
   has_ferret_search :title, :description
 end
 
@@ -33,7 +34,7 @@ end
 RSpec.configure do |config|
   config.after(:suite) do
     Ferret::Database.reset_connection!
-    File.delete(FERRET_TEST_DB) if File.exist?(FERRET_TEST_DB)
+    FileUtils.rm_f(FERRET_TEST_DB)
     Dir.glob("#{FERRET_TEST_DB}-*").each { |f| File.delete(f) }
   end
 end

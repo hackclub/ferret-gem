@@ -20,8 +20,8 @@ RSpec.describe Ferret::Database do
 
     it "creates all required tables" do
       tables = described_class.connection
-        .execute("SELECT name FROM sqlite_master WHERE type='table' OR type='shadow'")
-        .map { |r| r["name"] }
+                              .execute("SELECT name FROM sqlite_master WHERE type='table' OR type='shadow'")
+                              .map { |r| r["name"] }
 
       expect(tables).to include("ferret_documents")
       expect(tables).to include("vec_lookup")

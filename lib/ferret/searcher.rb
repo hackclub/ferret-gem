@@ -76,7 +76,7 @@ module Ferret
           WHERE record_type = ? AND record_id IN (#{placeholders})
         SQL
 
-        id_to_text = candidates.each_with_object({}) { |c, h| h[c["record_id"]] = c["searchable_text"] }
+        id_to_text = candidates.to_h { |c| [c["record_id"], c["searchable_text"]] }
 
         # Maintain order from RRF
         ordered_ids = candidate_ids.select { |id| id_to_text.key?(id) }
@@ -86,8 +86,8 @@ module Ferret
           reranked = reranker.(query, docs)
 
           scored = reranked
-            .select { |r| r[:score] > config.rerank_floor }
-            .sort_by { |r| -r[:score] }
+                   .select { |r| r[:score] > config.rerank_floor }
+                   .sort_by { |r| -r[:score] }
 
           final_ids = scored.first(limit).map { |r| ordered_ids[r[:doc_id]] }
         else

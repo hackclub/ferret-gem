@@ -3,7 +3,9 @@
 require "spec_helper"
 
 RSpec.describe Ferret::Indexer do
-  let!(:project) { TestProject.create!(title: "Space Invaders Clone", description: "A retro arcade game built with Lua") }
+  let!(:project) do
+    TestProject.create!(title: "Space Invaders Clone", description: "A retro arcade game built with Lua")
+  end
 
   after(:each) do
     db = Ferret::Database.connection
@@ -127,8 +129,10 @@ RSpec.describe Ferret::Indexer do
       described_class.remove_record("TestProject", project.id.to_s)
 
       db = Ferret::Database.connection
-      expect(db.execute("SELECT COUNT(*) as c FROM ferret_documents WHERE record_id = ?", [project.id.to_s]).first["c"]).to eq(0)
-      expect(db.execute("SELECT COUNT(*) as c FROM vec_lookup WHERE record_id = ?", [project.id.to_s]).first["c"]).to eq(0)
+      expect(db.execute("SELECT COUNT(*) as c FROM ferret_documents WHERE record_id = ?",
+                        [project.id.to_s]).first["c"]).to eq(0)
+      expect(db.execute("SELECT COUNT(*) as c FROM vec_lookup WHERE record_id = ?",
+                        [project.id.to_s]).first["c"]).to eq(0)
     end
   end
 

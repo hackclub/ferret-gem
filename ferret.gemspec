@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   # because it only publishes arm64-linux gems, not aarch64-linux,
   # which breaks bundler resolution on aarch64 Docker containers.
   # Users must add `gem "sqlite-vec"` to their own Gemfile.
-  spec.add_dependency "informers"
-  spec.add_dependency "activerecord", ">= 7.0"
   spec.add_dependency "activejob", ">= 7.0"
+  spec.add_dependency "activerecord", ">= 7.0"
+  spec.add_dependency "informers"
 end

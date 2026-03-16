@@ -80,25 +80,25 @@ module Ferret
 
     def self.embed_all!(model_class = nil)
       classes = if model_class
-        { model_class => Ferret.registry[model_class] }
-      else
-        Ferret.registry
-      end
+                  { model_class => Ferret.registry[model_class] }
+                else
+                  Ferret.registry
+                end
 
-      classes.each do |klass, fields|
+      classes.each_key do |klass|
         records = klass.all
         total = records.count
         done = 0
 
-        $stderr.puts "Ferret: embedding #{total} #{klass.name} records..."
+        warn "Ferret: embedding #{total} #{klass.name} records..."
 
         records.find_each do |record|
           index_record(record)
           done += 1
-          $stderr.print "\r  #{done}/#{total}" if done % 10 == 0
+          $stderr.print "\r  #{done}/#{total}" if (done % 10).zero?
         end
 
-        $stderr.puts "\r  done: #{done}/#{total} #{klass.name} records embedded"
+        warn "\r  done: #{done}/#{total} #{klass.name} records embedded"
       end
     end
 
