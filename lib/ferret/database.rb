@@ -84,7 +84,6 @@ module Ferret
           record_type UNINDEXED,
           record_id UNINDEXED,
           searchable_text,
-          content='',
           tokenize='porter unicode61'
         )
       SQL
